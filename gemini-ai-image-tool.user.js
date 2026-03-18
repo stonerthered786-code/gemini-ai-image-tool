@@ -1,7 +1,8 @@
 // ==UserScript==
 // @name         Gemini AI Image Tool
 // @namespace    gemini-tools
-// @match        *://*/*
+// @match        *://*/* // 
+//   @exclude      https://jathara.thecircleapp.in/*/create-layout*
 // @grant        none
 // @run-at       document-idle
 // ==/UserScript==
