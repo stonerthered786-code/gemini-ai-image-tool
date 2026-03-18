@@ -1,10 +1,16 @@
 // ==UserScript==
 // @name         Gemini AI Image Tool
-// @namespace    gemini-tools
-// @match        *://*/* // 
-//   @exclude      https://jathara.thecircleapp.in/*/create-layout*
+// @namespace    https://github.com/stonerthered786-code/gemini-ai-image-tool
+// @version      1.1
+// @description  Add AI button on images to send them to Gemini for professional portrait transformation
+// @author       stonerthered786
+// @match        *://*/*
+// @exclude      https://jathara.thecircleapp.in/*/create-layout*
+// @icon         https://www.google.com/s2/favicons?sz=64&domain=gemini.google.com
 // @grant        none
 // @run-at       document-idle
+// @updateURL    https://raw.githubusercontent.com/stonerthered786-code/gemini-ai-image-tool/main/gemini-ai-image-tool.user.js
+// @downloadURL  https://raw.githubusercontent.com/stonerthered786-code/gemini-ai-image-tool/main/gemini-ai-image-tool.user.js
 // ==/UserScript==
 
 (function () {
