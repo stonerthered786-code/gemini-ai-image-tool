@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Gemini AI Image Tool
 // @namespace    https://github.com/stonerthered786-code/gemini-ai-image-tool
-// @version      1.1
+// @version      1.3
 // @description  Add AI button on images to send them to Gemini for professional portrait transformation
 // @author       stonerthered786
 // @match        *://*/*
@@ -187,16 +187,7 @@ if(!imgPreview) return;
 
 clearInterval(timer);
 
-setTimeout(()=>{
-
-const btn =
-document.querySelector('button[aria-label="Send message"]') ||
-document.querySelector('button[aria-label="Send"]');
-
-if(btn) btn.click();
-
-},800);
-
+alert("Image uploaded. Click Send manually.");
 },500);
 
 }
