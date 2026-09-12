@@ -1,13 +1,14 @@
 // ==UserScript==
-// @name         Gemini AI Image Tool
+// @name         OmniImage - Multi-AI Image Generator
 // @namespace    https://github.com/stonerthered786-code/gemini-ai-image-tool
-// @version      1.3
-// @description  Add AI button on images to send them to Gemini for professional portrait transformation
+// @version      2.0
+// @description  Multi-provider AI image generation (Gemini, DALL-E, Midjourney, Stable Diffusion)
 // @author       stonerthered786
 // @match        *://*/*
 // @exclude      https://jathara.thecircleapp.in/*/create-layout*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=gemini.google.com
-// @grant        none
+// @grant        GM_setValue
+// @grant        GM_getValue
 // @run-at       document-idle
 // @updateURL    https://raw.githubusercontent.com/stonerthered786-code/gemini-ai-image-tool/main/gemini-ai-image-tool.user.js
 // @downloadURL  https://raw.githubusercontent.com/stonerthered786-code/gemini-ai-image-tool/main/gemini-ai-image-tool.user.js
@@ -19,7 +20,18 @@
 
 const MIN_SIZE = 200;
 
-const PROMPT = `Transform the input image into a professional political-style portrait while preserving the original photo composition.
+//////////////////////////////////////////////////
+// PROVIDER CONFIGURATION
+//////////////////////////////////////////////////
+
+const PROVIDERS = {
+  gemini: {
+    name: "Gemini (Google)",
+    url: "https://gemini.google.com/app",
+    icon: "🤖",
+    color: "#1a73e8",
+    hasAutomation: true,
+    prompt: `Transform the input image into a professional political-style portrait while preserving the original photo composition.
 Important preservation rules:
 
 Keep the exact same framing and crop.
@@ -56,140 +68,243 @@ Quality:
 High-resolution professional portrait
 Enhance clarity and sharpness
 Maintain natural skin tones
-Preserve identity accurately`;
+Preserve identity accurately`
+  },
+  dalle: {
+    name: "DALL-E 3 (OpenAI)",
+    url: "https://openai.com/dall-e-3",
+    icon: "🎨",
+    color: "#10a37f",
+    hasAutomation: false,
+    prompt: `Professional political-style portrait: Transform this image into a professional government-style portrait photo. Keep exact framing, same clothing, preserve identity. Studio lighting, plain neutral background, formal dignified appearance.`
+  },
+  midjourney: {
+    name: "Midjourney",
+    url: "https://www.midjourney.com",
+    icon: "✨",
+    color: "#9b59b6",
+    hasAutomation: false,
+    prompt: `/imagine professional portrait, political style, formal, dignified, studio lighting, neutral background, high resolution, preserve original clothing and identity`
+  },
+  stablediff: {
+    name: "Stable Diffusion",
+    url: "https://dreamstudio.ai",
+    icon: "🌟",
+    color: "#ff6b6b",
+    hasAutomation: false,
+    prompt: `professional portrait, political style, formal, dignified, studio lighting, neutral background, high quality, detailed, preserve clothing and identity`
+  }
+};
+
+// Store user's last selected provider
+const getLastProvider = () => GM_getValue("lastProvider", "gemini");
+const setLastProvider = (provider) => GM_setValue("lastProvider", provider);
+
+const PROMPT = PROVIDERS.gemini.prompt;
 
 //////////////////////////////////////////////////
-// IMAGE BUTTON
+// IMAGE BUTTON & PROVIDER SELECTOR
 //////////////////////////////////////////////////
 
 if(!location.hostname.includes("gemini.google.com")){
 
-function addButton(img){
+function createProviderMenu(img, wrapper) {
+  const menu = document.createElement("div");
+  menu.style.position = "absolute";
+  menu.style.top = "40px";
+  menu.style.right = "6px";
+  menu.style.background = "white";
+  menu.style.border = "1px solid #ddd";
+  menu.style.borderRadius = "8px";
+  menu.style.boxShadow = "0 2px 8px rgba(0,0,0,0.15)";
+  menu.style.zIndex = "10000";
+  menu.style.minWidth = "200px";
+  menu.style.display = "none";
+  menu.style.overflow = "hidden";
 
-if(img.dataset.aiAttached) return;
-img.dataset.aiAttached = true;
+  Object.entries(PROVIDERS).forEach(([key, provider]) => {
+    const option = document.createElement("button");
+    option.innerText = `${provider.icon} ${provider.name}`;
+    option.style.width = "100%";
+    option.style.padding = "10px 12px";
+    option.style.border = "none";
+    option.style.background = "transparent";
+    option.style.cursor = "pointer";
+    option.style.textAlign = "left";
+    option.style.fontSize = "13px";
+    option.style.transition = "background 0.2s";
+    option.style.color = "#333";
 
-if(img.naturalWidth < MIN_SIZE) return;
+    option.addEventListener("mouseenter", () => {
+      option.style.background = provider.color + "15";
+    });
+    option.addEventListener("mouseleave", () => {
+      option.style.background = "transparent";
+    });
 
-const wrapper = document.createElement("div");
-wrapper.style.position = "relative";
-wrapper.style.display = "inline-block";
+    option.onclick = async () => {
+      setLastProvider(key);
+      menu.style.display = "none";
+      handleImageSend(img, key);
+    };
 
-img.parentNode.insertBefore(wrapper,img);
-wrapper.appendChild(img);
+    menu.appendChild(option);
+  });
 
-const btn = document.createElement("button");
-btn.innerText = "AI";
+  return menu;
+}
 
-btn.style.position = "absolute";
-btn.style.top = "6px";
-btn.style.right = "6px";
-btn.style.zIndex = "9999";
-btn.style.padding = "4px 8px";
-btn.style.background = "#1a73e8";
-btn.style.color = "white";
-btn.style.border = "none";
-btn.style.cursor = "pointer";
-btn.style.borderRadius = "6px";
-btn.style.opacity = "0";
-btn.style.transition = "opacity 0.2s";
+function handleImageSend(img, providerKey) {
+  const provider = PROVIDERS[providerKey];
 
+  const canvas = document.createElement("canvas");
+  canvas.width = img.naturalWidth;
+  canvas.height = img.naturalHeight;
 
-wrapper.appendChild(btn);
-    wrapper.addEventListener("mouseenter", () => {
-  btn.style.opacity = "1";
-});
+  const ctx = canvas.getContext("2d");
+  ctx.drawImage(img, 0, 0);
 
-wrapper.addEventListener("mouseleave", () => {
+  canvas.toBlob(async blob => {
+    const item = new ClipboardItem({"image/png": blob});
+    await navigator.clipboard.write([item]);
+
+    // Show notification
+    showNotification(`Image copied! Opening ${provider.name}...`);
+
+    // Open provider URL
+    setTimeout(() => {
+      window.open(provider.url, "_blank");
+    }, 500);
+  });
+}
+
+function showNotification(message) {
+  const notif = document.createElement("div");
+  notif.innerText = message;
+  notif.style.position = "fixed";
+  notif.style.bottom = "20px";
+  notif.style.right = "20px";
+  notif.style.background = "#1a73e8";
+  notif.style.color = "white";
+  notif.style.padding = "12px 16px";
+  notif.style.borderRadius = "6px";
+  notif.style.zIndex = "10001";
+  notif.style.fontSize = "13px";
+  notif.style.boxShadow = "0 2px 8px rgba(0,0,0,0.2)";
+  
+  document.body.appendChild(notif);
+  setTimeout(() => notif.remove(), 3000);
+}
+
+function addButton(img) {
+  if(img.dataset.aiAttached) return;
+  img.dataset.aiAttached = true;
+
+  if(img.naturalWidth < MIN_SIZE) return;
+
+  const wrapper = document.createElement("div");
+  wrapper.style.position = "relative";
+  wrapper.style.display = "inline-block";
+
+  img.parentNode.insertBefore(wrapper, img);
+  wrapper.appendChild(img);
+
+  const btn = document.createElement("button");
+  btn.innerText = "AI ⚡";
+
+  btn.style.position = "absolute";
+  btn.style.top = "6px";
+  btn.style.right = "6px";
+  btn.style.zIndex = "9999";
+  btn.style.padding = "4px 8px";
+  btn.style.background = "#1a73e8";
+  btn.style.color = "white";
+  btn.style.border = "none";
+  btn.style.cursor = "pointer";
+  btn.style.borderRadius = "6px";
   btn.style.opacity = "0";
-});
+  btn.style.transition = "opacity 0.2s";
+  btn.style.fontSize = "12px";
+  btn.style.fontWeight = "bold";
 
+  wrapper.appendChild(btn);
 
-btn.onclick = async ()=>{
+  // Create provider menu
+  const menu = createProviderMenu(img, wrapper);
+  wrapper.appendChild(menu);
 
-const canvas = document.createElement("canvas");
-canvas.width = img.naturalWidth;
-canvas.height = img.naturalHeight;
+  wrapper.addEventListener("mouseenter", () => {
+    btn.style.opacity = "1";
+  });
 
-const ctx = canvas.getContext("2d");
-ctx.drawImage(img,0,0);
+  wrapper.addEventListener("mouseleave", () => {
+    btn.style.opacity = "0";
+    menu.style.display = "none";
+  });
 
-canvas.toBlob(async blob=>{
-
-const item = new ClipboardItem({"image/png":blob});
-await navigator.clipboard.write([item]);
-
-window.open("https://gemini.google.com/app","_blank");
-
-});
-
-};
-
+  btn.onclick = (e) => {
+    e.stopPropagation();
+    menu.style.display = menu.style.display === "none" ? "block" : "none";
+  };
 }
 
 function scan(){
-
-document.querySelectorAll("img").forEach(img=>{
-
-if(img.complete){
-addButton(img);
-}else{
-img.onload=()=>addButton(img);
-}
-
-});
-
+  document.querySelectorAll("img").forEach(img => {
+    if(img.complete){
+      addButton(img);
+    } else {
+      img.onload = () => addButton(img);
+    }
+  });
 }
 
 scan();
 
 new MutationObserver(scan)
-.observe(document.body,{childList:true,subtree:true});
+  .observe(document.body, {childList: true, subtree: true});
 
 }
 
 //////////////////////////////////////////////////
-// GEMINI AUTOMATION
+// GEMINI AUTOMATION (Auto-fill prompt)
 //////////////////////////////////////////////////
 
 if(location.hostname.includes("gemini.google.com")){
 
-setTimeout(()=>{
+setTimeout(() => {
+  const editor =
+    document.querySelector("textarea") ||
+    document.querySelector('[contenteditable="true"]');
 
-const editor =
-document.querySelector("textarea") ||
-document.querySelector('[contenteditable="true"]');
+  if(!editor) return;
 
-if(!editor) return;
+  editor.focus();
 
-editor.focus();
+  const geminiPrompt = PROVIDERS.gemini.prompt;
 
-if(editor.tagName==="TEXTAREA"){
-editor.value = PROMPT;
-}else{
-editor.innerText = PROMPT;
-}
+  if(editor.tagName === "TEXTAREA"){
+    editor.value = geminiPrompt;
+  } else {
+    editor.innerText = geminiPrompt;
+  }
 
-editor.dispatchEvent(new Event("input",{bubbles:true}));
+  editor.dispatchEvent(new Event("input", {bubbles: true}));
 
-waitForImage();
+  waitForImage();
 
-},2000);
+}, 2000);
 
 function waitForImage(){
+  const timer = setInterval(() => {
+    const imgPreview =
+      document.querySelector('img[src^="blob:"]');
 
-const timer = setInterval(()=>{
+    if(!imgPreview) return;
 
-const imgPreview =
-document.querySelector('img[src^="blob:"]');
+    clearInterval(timer);
 
-if(!imgPreview) return;
-
-clearInterval(timer);
-
-alert("Image uploaded. Click Send manually.");
-},500);
-
+    alert("Image uploaded. Click Send manually.");
+  }, 500);
 }
 
 }
