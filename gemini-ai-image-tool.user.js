@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         OmniImage - Multi-AI Image Generator
 // @namespace    https://github.com/stonerthered786-code/gemini-ai-image-tool
-// @version      2.0
+// @version      2.1
 // @description  Multi-provider AI image generation (Gemini, DALL-E, Midjourney, Stable Diffusion)
 // @author       stonerthered786
 // @match        *://*/*
@@ -31,6 +31,7 @@ const PROVIDERS = {
     icon: "🤖",
     color: "#1a73e8",
     hasAutomation: true,
+    free: true,
     prompt: `Transform the input image into a professional political-style portrait while preserving the original photo composition.
 Important preservation rules:
 
@@ -70,29 +71,41 @@ Enhance clarity and sharpness
 Maintain natural skin tones
 Preserve identity accurately`
   },
-  dalle: {
-    name: "DALL-E 3 (OpenAI)",
-    url: "https://openai.com/dall-e-3",
+  bing: {
+    name: "Bing Image Creator",
+    url: "https://www.bing.com/images/create",
+    icon: "🎯",
+    color: "#00a4ef",
+    hasAutomation: false,
+    free: true,
+    prompt: `Professional political-style portrait photo. Transform image into official government portrait. Keep exact framing, same clothing, preserve identity. Studio lighting, neutral gray background, formal dignified appearance.`
+  },
+  craiyon: {
+    name: "Craiyon",
+    url: "https://www.craiyon.com",
     icon: "🎨",
-    color: "#10a37f",
+    color: "#aa2e4c",
     hasAutomation: false,
-    prompt: `Professional political-style portrait: Transform this image into a professional government-style portrait photo. Keep exact framing, same clothing, preserve identity. Studio lighting, plain neutral background, formal dignified appearance.`
+    free: true,
+    prompt: `professional political portrait, formal, dignified, studio lighting, neutral background, high quality, preserve clothing and identity`
   },
-  midjourney: {
-    name: "Midjourney",
-    url: "https://www.midjourney.com",
+  huggingface: {
+    name: "Hugging Face",
+    url: "https://huggingface.co/spaces",
+    icon: "🤗",
+    color: "#ffd21e",
+    hasAutomation: false,
+    free: true,
+    prompt: `professional portrait, political style, formal, dignified, studio lighting, neutral background, high resolution, preserve original clothing and identity`
+  },
+  leonardo: {
+    name: "Leonardo.AI",
+    url: "https://leonardo.ai",
     icon: "✨",
-    color: "#9b59b6",
+    color: "#00d4ff",
     hasAutomation: false,
-    prompt: `/imagine professional portrait, political style, formal, dignified, studio lighting, neutral background, high resolution, preserve original clothing and identity`
-  },
-  stablediff: {
-    name: "Stable Diffusion",
-    url: "https://dreamstudio.ai",
-    icon: "🌟",
-    color: "#ff6b6b",
-    hasAutomation: false,
-    prompt: `professional portrait, political style, formal, dignified, studio lighting, neutral background, high quality, detailed, preserve clothing and identity`
+    free: true,
+    prompt: `professional political-style portrait, formal government official photo, studio lighting, neutral background, high resolution, preserve identity and clothing`
   }
 };
 
